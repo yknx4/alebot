@@ -4,22 +4,36 @@
   "private": true,
   "author": "Ale Figueroa <me@ale.world>",
   "description": "My personal bot",
+  "scripts": {
+    "start": "bin/hubot",
+    "dev": "./node_modules/.bin/nodemon --exec bin/hubot -- --disable-httpd"
+  },
   "dependencies": {
+    "dotenv": "^4.0.0",
+    "github": "^9.2.0",
+    "graphql-client": "^1.1.0",
     "hubot": "^2.19.0",
     "hubot-diagnostics": "0.0.2",
     "hubot-google-images": "^0.2.7",
     "hubot-google-translate": "^0.2.1",
     "hubot-help": "^0.2.2",
-    "hubot-heroku-keepalive": "^1.0.3",
+    "hubot-longtext": "^3.1.0",
     "hubot-maps": "0.0.3",
+    "hubot-messenger-bot": "^1.0.1",
     "hubot-pugme": "^0.1.1",
     "hubot-redis-brain": "0.0.4",
     "hubot-rules": "^0.1.2",
     "hubot-scripts": "^2.17.2",
     "hubot-shell": "^1.0.2",
-    "hubot-shipit": "^0.2.1"
+    "hubot-shipit": "^0.2.1",
+    "hubot-telegram": "^0.1.2",
+    "lodash": "^4.17.4",
+    "parse-github-url": "^1.0.0"
   },
   "engines": {
     "node": "0.10.x"
+  },
+  "devDependencies": {
+    "nodemon": "^1.11.0"
   }
 }
