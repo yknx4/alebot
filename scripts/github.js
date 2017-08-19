@@ -41,39 +41,50 @@ function getLastPage(meta) {
 }
 
 module.exports = jade => {
-  jade.hear(/(prs?|pull requests?) (for|in) (\w*\/\w*|\w*)/i, async res => {
-    const fullRepo = res.match[3].split("/");
-    const repo = fullRepo[1] || fullRepo[0];
-    const owner = fullRepo[0] !== repo ? fullRepo[0] : user;
-    if (repo == null) return;
-    let page = 1;
+  jade.hear(
+    /(my)? ?(prs?|pull requests?) (for|in) (\w*\/\w*|\w*)/i,
+    async res => {
+      const fullRepo = res.match[4].split("/");
+      const my = res.match[1];
+      const repo = fullRepo[1] || fullRepo[0];
+      const owner = fullRepo[0] !== repo ? fullRepo[0] : user;
+      if (repo == null) return;
+      let page = 1;
 
-    res.send(`Loading *Pull Requests* for ${owner}/${repo}`);
-    try {
-      const prs = await github.pullRequests.getAll({
-        owner,
-        per_page: 100,
-        repo,
-        page
-      });
+      const userFilter = my ? pr => pr.user.login === user : () => true;
 
-      const template = pr =>
-        `- _${pr.user.login}_ *#${pr.number}* [${pr.title}](${pr.url}). ${pr
-          .requested_reviewers.length > 0
-          ? "Reviewers: " +
-            pr.requested_reviewers.map(u => `_${u.login}_`).join(", ")
-          : ""}`;
+      res.send(`Loading *Pull Requests* for ${owner}/${repo}`);
+      try {
+        const prs = await github.pullRequests.getAll({
+          owner,
+          per_page: 100,
+          repo,
+          page
+        });
 
-      let message = prs.data.map(template);
-      message = `These are the open *Pull Requests* on ${repo}\n${message.join(
-        "\n"
-      )}`;
+        const noun = my ? "your" : "the";
 
-      res.send(message);
-    } catch (error) {
-      res.send(`Cannot get pull requests for ${owner}/${repo}`);
+        const template = pr =>
+          `- ${my
+            ? ""
+            : `_${pr.user
+                .login}_ `}*#${pr.number}* [${pr.title}](${pr.url}). ${pr
+            .requested_reviewers.length > 0
+            ? "Reviewers: " +
+              pr.requested_reviewers.map(u => `_${u.login}_`).join(", ")
+            : ""}`;
+
+        let message = prs.data.filter(userFilter).map(template);
+        message = `These are ${noun} open *Pull Requests* on ${repo}\n${message.join(
+          "\n"
+        )}`;
+
+        res.send(message);
+      } catch (error) {
+        res.send(`Cannot get pull requests for ${owner}/${repo}`);
+      }
     }
-  });
+  );
   // robot.heardd /badger/i, (res) ->
   //   res.send "Badgers? BADGERS? WE DON'T NEED NO STINKIN BADGERS"
   //
