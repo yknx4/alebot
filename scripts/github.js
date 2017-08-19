@@ -2,6 +2,7 @@ require("dotenv").config();
 const GitHubApi = require("github");
 const githubParser = require("parse-github-url");
 const { reduce, range } = require("lodash");
+const Mustache = require("mustache");
 
 const user = process.env.GITHUB_USER;
 
@@ -53,7 +54,10 @@ module.exports = jade => {
 
       const userFilter = my ? pr => pr.user.login === user : () => true;
 
-      res.send(`Loading *Pull Requests* for ${owner}/${repo}`);
+      res.send(
+        `Loading ${my ? "your " : ""}*Pull Requests* for ${owner}/${repo}`
+      );
+
       try {
         const prs = await github.pullRequests.getAll({
           owner,
@@ -62,24 +66,31 @@ module.exports = jade => {
           page
         });
 
-        const noun = my ? "your" : "the";
+        const view = {
+          noun: my ? "your" : "the",
+          repo,
+          owner,
+          notme: my == null,
+          prs: prs.data.filter(userFilter).map(p => {
+            p.hasReviewers = p.requested_reviewers.length > 0;
+            p.reviewers = p.requested_reviewers
+              .map(r => `_${r.login}_`)
+              .join(", ");
+            return p;
+          })
+        };
 
-        const template = pr =>
-          `- ${my
-            ? ""
-            : `_${pr.user
-                .login}_ `}*#${pr.number}* [${pr.title}](${pr.url}). ${pr
-            .requested_reviewers.length > 0
-            ? "Reviewers: " +
-              pr.requested_reviewers.map(u => `_${u.login}_`).join(", ")
-            : ""}`;
+        if (view.prs.length === 0) {
+          return res.send(
+            `There are no open *Pull Requests* on ${owner}/${repo}`
+          );
+        }
 
-        let message = prs.data.filter(userFilter).map(template);
-        message = `These are ${noun} open *Pull Requests* on ${repo}\n${message.join(
-          "\n"
-        )}`;
+        const prTemplate = `These are {{noun}} open *Pull Requests* on {{owner}}/{{repo}}
+{{#prs}}- {{#notme}}_{{user.login}}_{{/notme}} *#{{number}}* [{{{title}}}]({{{url}}}).{{#hasReviewers}} Reviewers: {{reviewers}}{{/hasReviewers}}\n{{/prs}}`;
 
-        res.send(message);
+        console.log(Mustache.render(prTemplate, view));
+        res.send(Mustache.render(prTemplate, view));
       } catch (error) {
         res.send(`Cannot get pull requests for ${owner}/${repo}`);
       }
