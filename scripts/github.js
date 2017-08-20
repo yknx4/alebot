@@ -1,7 +1,7 @@
 require("dotenv").config();
 const GitHubApi = require("github");
 const githubParser = require("parse-github-url");
-const { reduce, range } = require("lodash");
+const { reduce, range, flatten } = require("lodash");
 const Mustache = require("mustache");
 
 const user = process.env.GITHUB_USER;
@@ -24,6 +24,7 @@ const github = new GitHubApi({
 const linkParser = /<.*page=(\d)>; rel="(.*)"/i;
 
 function getLastPage(meta) {
+  if (!meta.link) return 1;
   let links = meta.link.split(",").map(l => {
     const match = linkParser.exec(l) || [];
     const [input, link, rel] = match;
@@ -39,6 +40,19 @@ function getLastPage(meta) {
     {}
   );
   return parseInt(links.last, 10) || 1;
+}
+
+async function loadAll(fn, opts) {
+  const args = Object.assign({}, opts, { page: 1 });
+  const firstResult = await fn(args);
+  const lastPage = getLastPage(firstResult.meta);
+  if (lastPage === 1) return firstResult.data;
+
+  let results = range(2, lastPage + 1);
+  results = results.map(async page => fn(Object.assign({}, opts, { page })));
+
+  results = await Promise.all(results);
+  return flatten([firstResult.data, ...results.map(r => r.data)]);
 }
 
 module.exports = jade => {
@@ -59,7 +73,7 @@ module.exports = jade => {
       );
 
       try {
-        const prs = await github.pullRequests.getAll({
+        const prs = await loadAll(github.pullRequests.getAll, {
           owner,
           per_page: 100,
           repo,
@@ -71,7 +85,7 @@ module.exports = jade => {
           repo,
           owner,
           notme: my == null,
-          prs: prs.data.filter(userFilter).map(p => {
+          prs: prs.filter(userFilter).map(p => {
             p.hasReviewers = p.requested_reviewers.length > 0;
             p.reviewers = p.requested_reviewers
               .map(r => `_${r.login}_`)
@@ -87,11 +101,12 @@ module.exports = jade => {
         }
 
         const prTemplate = `These are {{noun}} open *Pull Requests* on {{owner}}/{{repo}}
-{{#prs}}- {{#notme}}_{{user.login}}_{{/notme}} *#{{number}}* [{{{title}}}]({{{url}}}).{{#hasReviewers}} Reviewers: {{reviewers}}{{/hasReviewers}}\n{{/prs}}`;
+\t{{#prs}}- {{#notme}}_{{user.login}}_{{/notme}} *#{{number}}* [{{{title}}}]({{{url}}}).{{#hasReviewers}} Reviewers: {{reviewers}}{{/hasReviewers}}\n{{/prs}}`;
 
         console.log(Mustache.render(prTemplate, view));
         res.send(Mustache.render(prTemplate, view));
       } catch (error) {
+        console.log(error);
         res.send(`Cannot get pull requests for ${owner}/${repo}`);
       }
     }

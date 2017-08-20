@@ -9,6 +9,8 @@
     "dev": "./node_modules/.bin/nodemon --exec bin/hubot -- --disable-httpd"
   },
   "dependencies": {
+    "bunyan": "^1.8.12",
+    "date-fns": "^1.28.5",
     "dotenv": "^4.0.0",
     "github": "^9.2.0",
     "graphql-client": "^1.1.0",
@@ -28,6 +30,8 @@
     "hubot-shipit": "^0.2.1",
     "hubot-telegram": "^0.1.2",
     "lodash": "^4.17.4",
+    "mustache": "^2.3.0",
+    "node-ssh": "^4.2.3",
     "parse-github-url": "^1.0.0"
   },
   "engines": {
