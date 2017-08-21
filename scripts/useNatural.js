@@ -9,6 +9,7 @@ module.exports = function useNaturals(robot) {
     const { response } = context;
     const { message } = response;
     if (message.message != null) {
+      logger.info(`Ignoring CatchAllMessage`);
       return next(done);
     }
     const { user } = message;
@@ -31,17 +32,15 @@ module.exports = function useNaturals(robot) {
 
     const matches = NaturalMatcher.match(text, topScore, classifications);
     if (matches.length === 1) {
-      const [match] = matches;
-      logger.info(`${text} matched to: `, match);
-      const Matcher = NaturalMatcher.matchers[match.label];
-      if (Matcher == null) {
-        return next(done);
-      }
+      const [Matcher] = matches;
+      logger.info(`${text} matched to: `, Matcher.name);
       const matcher = new Matcher(response, robot);
       matcher.execute();
       return done();
     }
-    response.send(`Possible matches: ${JSON.stringify(matches)}`);
+    response.send(
+      `Possible matches: ${JSON.stringify(matches.map(m => m.name))}`
+    );
     return next(done);
   });
 };

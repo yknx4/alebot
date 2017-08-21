@@ -11,10 +11,10 @@ module.exports = robot => {
       addSuffix: true,
       includeSeconds: true
     });
-    res.send(`You took a shower ${timeSinceShower}.`);
+    return res.send(`You took a shower ${timeSinceShower}.`);
   });
 
-  robot.hear(/took shower/i, res => {
+  robot.hear(/took(.*)shower?[^\?]$/i, res => {
     res.reply("Gotcha!");
     robot.brain.set("lastShower", new Date().toISOString());
   });
