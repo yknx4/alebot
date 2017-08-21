@@ -1,7 +1,7 @@
-const { standardDeviation, mean, zScore } = require("simple-statistics");
-const { max } = require("lodash");
+const { standardDeviation, mean, zScore } = require('simple-statistics');
+const { max } = require('lodash');
 
-const { NaturalMatcher } = require("../src/natural_matchers");
+const { NaturalMatcher } = require('../src/natural_matchers');
 
 module.exports = function useNaturals(robot) {
   return robot.receiveMiddleware((context, next, done) => {
@@ -13,8 +13,8 @@ module.exports = function useNaturals(robot) {
       return next(done);
     }
     const { user } = message;
-    if (user.id !== 169915916 && robot.adapterName !== "shell") {
-      response.reply("Who are you?");
+    if (user.id !== 169915916 && robot.adapterName !== 'shell') {
+      response.reply('Who are you?');
       return done();
     }
 
@@ -38,9 +38,46 @@ module.exports = function useNaturals(robot) {
       matcher.execute();
       return done();
     }
-    response.send(
-      `Possible matches: ${JSON.stringify(matches.map(m => m.name))}`
-    );
+    if (matches.length > 0) {
+      // response.send(`Possible matches: ${JSON.stringify(matches.map(m => m.name))}`);
+      const messageTitle = `Your message is a bit ambigous.\n Did you mean to...\n`;
+      if (robot.adapterName === 'telegram') {
+        response.envelope.telegram = {
+          reply_markup: {
+            keyboard: [matches.map(m => m.description)],
+            resize_keyboard: true,
+            one_time_keyboard: true,
+          },
+        };
+        response.send(messageTitle);
+      } else {
+        const messageTemplate = `toBeDefined`;
+        response.send(messageTitle + messageTemplate);
+      }
+      robot.emit(
+        'expectResponse',
+        response.message.user.id,
+        nestedRes => {
+          nestedRes.envelope.telegram = {
+            reply_markup: { remove_keyboard: true },
+          };
+          const cleanText = nestedRes.message.text.replace(robot.name, '').trim();
+          const SelectedOption = matches.find(m => m.description === cleanText);
+          if (SelectedOption) {
+            const matcher = new SelectedOption(nestedRes, robot);
+            classifier.addDocument(cleanText, matcher.tag);
+            classifier.addDocument(text, matcher.tag);
+            matcher.execute();
+          } else {
+            nestedRes.send('so, any of those.... sorry.');
+          }
+          logger.info(`expected response: ${cleanText}: ${SelectedOption != null}`);
+        },
+        { ttl: 0 },
+      );
+      return done();
+    }
+
     return next(done);
   });
 };

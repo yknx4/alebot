@@ -15,6 +15,7 @@ class NaturalMatcher {
   static register(matcher, tag) {
     logger.info(`Registering ${matcher.name} as ${tag}`);
     NaturalMatcher.matchers[tag] = matcher;
+    matcher.tag = tag;
     const { keywords = [] } = matcher;
     keywords.forEach(keyword => {
       NaturalMatcher.index[keyword] = (NaturalMatcher.index[keyword] || []).push(matcher);
@@ -59,6 +60,7 @@ NaturalMatcher.index = {
   $unscoped: [],
 };
 NaturalMatcher.keywords = [];
+NaturalMatcher.description = 'Missing Description';
 
 NaturalMatcher.match = function match(text, maxScore, classifications) {
   const margin = maxScore * 0.25;
@@ -66,22 +68,22 @@ NaturalMatcher.match = function match(text, maxScore, classifications) {
   return classifications
     .filter(c => {
       const matcherExists = NaturalMatcher.matchers[c.label] != null;
-      logger.info(`${c.label} exists: ${matcherExists}`);
+      logger.trace(`${c.label} exists: ${matcherExists}`);
       return matcherExists;
     })
     .filter(c => {
       const enoughScore = c.zScore >= maxScore - margin;
-      logger.info(`${c.label} ${c.value} is within range: ${enoughScore}`);
+      logger.trace(`${c.label} ${c.value} is within range: ${enoughScore}`);
       return enoughScore;
     })
     .map(c => NaturalMatcher.matchers[c.label])
     .filter(m => {
       if (m.hasRegex) {
         const itMatches = m.matches(text) != null;
-        logger.info(`${m.name} has regex and matches: ${itMatches}`);
+        logger.trace(`${m.name} has regex and matches: ${itMatches}`);
         return itMatches;
       }
-      logger.info(`${m.name} does not have a regex`);
+      logger.trace(`${m.name} does not have a regex`);
       return true;
     })
     .filter(m => {
@@ -93,7 +95,7 @@ NaturalMatcher.match = function match(text, maxScore, classifications) {
           for (let wordPos = 0; wordPos < words.length; wordPos++) {
             const word = words[wordPos];
             const similarityDegree = natural.JaroWinklerDistance(keyword, word);
-            logger.info(`${word} is ${similarityDegree * 100}% similar to ${keyword}.`);
+            logger.trace(`${word} is ${similarityDegree * 100}% similar to ${keyword}.`);
             if (similarityDegree >= keywordSimilarity) {
               return true;
             }
