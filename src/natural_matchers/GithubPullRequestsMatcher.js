@@ -59,7 +59,6 @@ const onlyMineRegex = /\s(my|mine)\s/i;
 
 class GithubPullRequestsMatcher extends NaturalMatcher {
   async execute() {
-    logger.info(this);
     const { res, matches, text } = this;
     const fullRepo = matches[2].split("/");
     const my = onlyMineRegex.test(text);

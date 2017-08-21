@@ -1,10 +1,13 @@
-const invariant = require("invariant");
-const { isRegExp } = require("lodash");
+const invariant = require('invariant');
+const { isRegExp } = require('lodash');
+const natural = require('natural');
+
+const tokenizer = new natural.WordTokenizer();
 
 class NaturalMatcher {
   constructor(res, robot) {
-    invariant(res, "Should have a response");
-    invariant(robot, "Should have a robot");
+    invariant(res, 'Should have a response');
+    invariant(robot, 'Should have a robot');
     this.res = res;
     this.robot = robot;
   }
@@ -14,8 +17,7 @@ class NaturalMatcher {
     NaturalMatcher.matchers[tag] = matcher;
     const { keywords = [] } = matcher;
     keywords.forEach(keyword => {
-      NaturalMatcher.index[keyword] = (NaturalMatcher.index[keyword] || [])
-        .push(matcher);
+      NaturalMatcher.index[keyword] = (NaturalMatcher.index[keyword] || []).push(matcher);
     });
     if (keywords.length === 0) {
       NaturalMatcher.index.$unscoped.push(matcher);
@@ -28,7 +30,7 @@ class NaturalMatcher {
 
   static matches(text) {
     if (!isRegExp(this.regex)) {
-      logger.warn("NaturalMatcher should have a regexp if you want matches");
+      logger.warn('NaturalMatcher should have a regexp if you want matches');
       return null;
     }
     return this.regex.exec(text);
@@ -54,21 +56,23 @@ class NaturalMatcher {
 
 NaturalMatcher.matchers = {};
 NaturalMatcher.index = {
-  $unscoped: []
+  $unscoped: [],
 };
+NaturalMatcher.keywords = [];
 
 NaturalMatcher.match = function match(text, maxScore, classifications) {
   const margin = maxScore * 0.25;
+  const keywordSimilarity = this.keywordSimilarityMargin || 0.7;
   return classifications
-    .filter(c => {
-      const enoughScore = c.zScore >= maxScore - margin;
-      logger.info(`${c.label} ${c.value} is within range: ${enoughScore}`);
-      return enoughScore;
-    })
     .filter(c => {
       const matcherExists = NaturalMatcher.matchers[c.label] != null;
       logger.info(`${c.label} exists: ${matcherExists}`);
       return matcherExists;
+    })
+    .filter(c => {
+      const enoughScore = c.zScore >= maxScore - margin;
+      logger.info(`${c.label} ${c.value} is within range: ${enoughScore}`);
+      return enoughScore;
     })
     .map(c => NaturalMatcher.matchers[c.label])
     .filter(m => {
@@ -78,6 +82,25 @@ NaturalMatcher.match = function match(text, maxScore, classifications) {
         return itMatches;
       }
       logger.info(`${m.name} does not have a regex`);
+      return true;
+    })
+    .filter(m => {
+      if (m.scoped) {
+        const keywords = m.keywords;
+        const words = tokenizer.tokenize(text);
+        for (let keywordPos = 0; keywordPos < keywords.length; keywordPos++) {
+          const keyword = keywords[keywordPos];
+          for (let wordPos = 0; wordPos < words.length; wordPos++) {
+            const word = words[wordPos];
+            const similarityDegree = natural.JaroWinklerDistance(keyword, word);
+            logger.info(`${word} is ${similarityDegree * 100}% similar to ${keyword}.`);
+            if (similarityDegree >= keywordSimilarity) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
       return true;
     });
 };
