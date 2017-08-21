@@ -37,12 +37,17 @@ class NaturalMatcher {
   static get hasRegex() {
     return isRegExp(this.regex);
   }
+
+  get text() {
+    return this.res.message.text;
+  }
+
   get matches() {
-    return this.constructor.matches(this.res.match.text);
+    return this.constructor.matches(this.text);
   }
 
   // eslint-disable-next-line no-unused-vars
-  execute() {
+  async execute() {
     throw new Error(`execute not implemented in ${this.constructor.name}`);
   }
 }

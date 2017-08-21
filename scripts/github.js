@@ -1,6 +1,5 @@
 require("dotenv").config();
 const GitHubApi = require("github");
-const githubParser = require("parse-github-url");
 const { reduce, range, flatten } = require("lodash");
 const Mustache = require("mustache");
 
@@ -64,7 +63,7 @@ module.exports = jade => {
       const repo = fullRepo[1] || fullRepo[0];
       const owner = fullRepo[0] !== repo ? fullRepo[0] : user;
       if (repo == null) return;
-      let page = 1;
+      const page = 1;
 
       const userFilter = my ? pr => pr.user.login === user : () => true;
 

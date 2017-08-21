@@ -8,7 +8,7 @@ const SHOWERED_ANSWERS = [
 ];
 
 class SetShowerMatcher extends NaturalMatcher {
-  execute() {
+  async execute() {
     const { res, robot } = this;
     res.reply(res.random(SHOWERED_ANSWERS));
     robot.brain.set("lastShower", new Date().toISOString());

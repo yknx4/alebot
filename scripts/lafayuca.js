@@ -1,6 +1,7 @@
-const node_ssh = require("node-ssh");
+const NodeSSH = require("node-ssh");
 const { readFileSync } = require("fs");
-const ssh = new node_ssh();
+
+const ssh = new NodeSSH();
 const path = require("path");
 
 const rootCommand = (command = "") =>
@@ -15,7 +16,7 @@ module.exports = async robot => {
 
   robot.hear(/restart this shit/i, async res => {
     res.reply("Restarting mopidy");
-    const uptime = await ssh.execCommand(rootCommand("service mopidy restart"));
+    await ssh.execCommand(rootCommand("service mopidy restart"));
     res.send("Done!");
   });
 

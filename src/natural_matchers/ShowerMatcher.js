@@ -10,7 +10,7 @@ const NO_SHOWER_ANSWERS = [
 ];
 
 class ShowerMatcher extends NaturalMatcher {
-  execute() {
+  async execute() {
     const { res, robot } = this;
     const lastShower = robot.brain.get("lastShower");
     if (lastShower == null) {
