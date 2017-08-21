@@ -18,4 +18,5 @@ function setupLogger() {
 }
 if (global.logger == null) {
   setupLogger();
+  global.logger.info("logger initialized");
 }

@@ -1,0 +1,7 @@
+{
+  "extends": ["airbnb-base", "prettier"],
+  "globals": {
+    "logger": true,
+    "classifier": true
+  }
+}
