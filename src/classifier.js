@@ -24,9 +24,9 @@ if (global.classifier == null) {
       if (err) logger.error(err);
       else logger.trace('Backing up classifier data');
     });
-  }, 10000);
+  }, 60000);
 
-  classifier.events.on('trainedWithDocument', (obj) => {
+  classifier.events.on('trainedWithDocument', obj => {
     logger.info('Trained: ', obj);
   });
 
