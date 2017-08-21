@@ -6,7 +6,7 @@ function setupLogger() {
     src: process.env.NODE_ENV !== 'production',
     streams: [
       {
-        level: 'info',
+        level: 'trace',
         stream: process.stdout,
       },
       {
