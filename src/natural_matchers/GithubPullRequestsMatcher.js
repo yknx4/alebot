@@ -1,61 +1,13 @@
+const Mustache = require("mustache");
 const NaturalMatcher = require("./NaturalMatcher");
 const { GITHUB_PR_PLURAL } = require("../classifications");
-const GitHubApi = require("github");
-const { reduce, range, flatten } = require("lodash");
-const Mustache = require("mustache");
+const { github, loadAll } = require("../helpers/github.helpers");
+const {
+  onlyMineRegex,
+  filterByUser
+} = require("./GithubPullRequestsMatcher.helpers");
 
 const user = process.env.GITHUB_USER;
-
-const github = new GitHubApi({
-  // optional
-  debug: false,
-  protocol: "https",
-  host: "api.github.com", // should be api.github.com for GitHub
-  pathPrefix: "", // for some GHEs; none for GitHub
-  headers: {
-    "user-agent": "AleBot", // GitHub is happy with a unique user agent
-    Authorization: `token ${process.env.GITHUB_TOKEN}`
-  },
-  family: 6,
-  followRedirects: false, // default: true; there's currently an issue with non-get redirects, so allow ability to disable follow-redirects
-  timeout: 5000
-});
-
-const linkParser = /<.*page=(\d)>; rel="(.*)"/i;
-
-function getLastPage(meta) {
-  if (!meta.link) return 1;
-  let links = meta.link.split(",").map(l => {
-    const match = linkParser.exec(l) || [];
-    const [input, link, rel] = match; // eslint-disable-line no-unused-vars
-    return [rel, link];
-  });
-  links = reduce(
-    links,
-    (a, e) => {
-      const [key, value] = e || [];
-      a[key] = value; // eslint-disable-line no-param-reassign
-      return a;
-    },
-    {}
-  );
-  return parseInt(links.last, 10) || 1;
-}
-
-async function loadAll(fn, opts) {
-  const args = Object.assign({}, opts, { page: 1 });
-  const firstResult = await fn(args);
-  const lastPage = getLastPage(firstResult.meta);
-  if (lastPage === 1) return firstResult.data;
-
-  let results = range(2, lastPage + 1);
-  results = results.map(async page => fn(Object.assign({}, opts, { page })));
-
-  results = await Promise.all(results);
-  return flatten([firstResult.data, ...results.map(r => r.data)]);
-}
-
-const onlyMineRegex = /\s(my|mine)\s/i;
 
 class GithubPullRequestsMatcher extends NaturalMatcher {
   get fullRepo() {
@@ -97,8 +49,6 @@ class GithubPullRequestsMatcher extends NaturalMatcher {
       classifier.addDocument(text, GITHUB_PR_PLURAL);
     }
 
-    const userFilter = onlyMine ? pr => pr.user.login === user : () => true;
-
     res.send(
       `Loading ${onlyMine ? "your " : ""}*Pull Requests* for ${owner}/${repo}`
     );
@@ -115,7 +65,7 @@ class GithubPullRequestsMatcher extends NaturalMatcher {
         repo,
         owner,
         notme: onlyMine === false,
-        prs: prs.filter(userFilter).map(p => {
+        prs: prs.filter(filterByUser(user, onlyMine)).map(p => {
           p.hasReviewers = p.requested_reviewers.length > 0;
           p.reviewers = p.requested_reviewers
             .map(r => `_${r.login}_`)
