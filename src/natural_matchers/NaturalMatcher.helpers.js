@@ -43,9 +43,9 @@ exports.isSimilarToKeywords = (text, minimumSimilarity = 0.7) => matcher => {
   const { scoped, keywords } = matcher;
   if (scoped) {
     const words = tokenizer.tokenize(text);
-    for (let keywordPos = 0; keywordPos < keywords.length; keywordPos++) {
+    for (let keywordPos = 0; keywordPos < keywords.length; keywordPos += 1) {
       const keyword = keywords[keywordPos];
-      for (let wordPos = 0; wordPos < words.length; wordPos++) {
+      for (let wordPos = 0; wordPos < words.length; wordPos += 1) {
         const word = words[wordPos];
         const similarityDegree = natural.JaroWinklerDistance(keyword, word);
         logger.trace(
