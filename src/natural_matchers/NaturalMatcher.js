@@ -1,15 +1,16 @@
-const invariant = require('invariant');
-const { isRegExp } = require('lodash');
-const natural = require('natural');
+const invariant = require("invariant");
+const { isRegExp, values } = require("lodash");
+const natural = require("natural");
 
 const tokenizer = new natural.WordTokenizer();
 
 class NaturalMatcher {
-  constructor(res, robot) {
-    invariant(res, 'Should have a response');
-    invariant(robot, 'Should have a robot');
+  constructor(res, robot, fallback = false) {
+    invariant(res, "Should have a response");
+    invariant(robot, "Should have a robot");
     this.res = res;
     this.robot = robot;
+    this.fallback = fallback;
   }
 
   static register(matcher, tag) {
@@ -18,7 +19,8 @@ class NaturalMatcher {
     matcher.tag = tag;
     const { keywords = [] } = matcher;
     keywords.forEach(keyword => {
-      NaturalMatcher.index[keyword] = (NaturalMatcher.index[keyword] || []).push(matcher);
+      NaturalMatcher.index[keyword] = (NaturalMatcher.index[keyword] || [])
+        .push(matcher);
     });
     if (keywords.length === 0) {
       NaturalMatcher.index.$unscoped.push(matcher);
@@ -30,8 +32,18 @@ class NaturalMatcher {
   }
 
   static matches(text) {
-    if (!isRegExp(this.regex)) {
-      logger.warn('NaturalMatcher should have a regexp if you want matches');
+    if (!this.hasRegex) {
+      logger.warn("NaturalMatcher should have a regexp if you want matches");
+      return null;
+    }
+    return this.regex.exec(text);
+  }
+
+  static fallbackMatches(text) {
+    if (!this.hasFallback) {
+      logger.warn(
+        "NaturalMatcher should have a fallback regexp if you want matches"
+      );
       return null;
     }
     return this.regex.exec(text);
@@ -41,12 +53,22 @@ class NaturalMatcher {
     return isRegExp(this.regex);
   }
 
+  static get hasFallback() {
+    return isRegExp(this.fallbackRegex);
+  }
+
   get text() {
-    return this.res.message.text;
+    const { fallback, res: { message } } = this;
+    const actualMessage = fallback ? message.message : message;
+    return actualMessage.text.replace(this.robot.name, "").trim();
   }
 
   get matches() {
-    return this.constructor.matches(this.text);
+    const { fallback, constructor, text } = this;
+    const matcherFn = fallback
+      ? constructor.fallbackMatches
+      : constructor.matches;
+    return matcherFn.call(constructor, text);
   }
 
   // eslint-disable-next-line no-unused-vars
@@ -57,10 +79,15 @@ class NaturalMatcher {
 
 NaturalMatcher.matchers = {};
 NaturalMatcher.index = {
-  $unscoped: [],
+  $unscoped: []
 };
 NaturalMatcher.keywords = [];
-NaturalMatcher.description = 'Missing Description';
+NaturalMatcher.description = "Missing Description";
+
+NaturalMatcher.findLegacyMatcher = function findLegacyMatcher(text) {
+  const matchers = values(NaturalMatcher.matchers);
+  return matchers.find(m => m.hasFallback && m.fallbackRegex.test(text));
+};
 
 NaturalMatcher.match = function match(text, maxScore, classifications) {
   const margin = maxScore * 0.25;
@@ -95,7 +122,9 @@ NaturalMatcher.match = function match(text, maxScore, classifications) {
           for (let wordPos = 0; wordPos < words.length; wordPos++) {
             const word = words[wordPos];
             const similarityDegree = natural.JaroWinklerDistance(keyword, word);
-            logger.trace(`${word} is ${similarityDegree * 100}% similar to ${keyword}.`);
+            logger.trace(
+              `${word} is ${similarityDegree * 100}% similar to ${keyword}.`
+            );
             if (similarityDegree >= keywordSimilarity) {
               return true;
             }

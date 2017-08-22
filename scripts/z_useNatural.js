@@ -1,20 +1,27 @@
-const { standardDeviation, mean, zScore } = require('simple-statistics');
-const { max } = require('lodash');
+const { standardDeviation, mean, zScore } = require("simple-statistics");
+const { max } = require("lodash");
 
-const { NaturalMatcher } = require('../src/natural_matchers');
+const { NaturalMatcher } = require("../src/natural_matchers");
 
 module.exports = function useNaturals(robot) {
-  return robot.receiveMiddleware((context, next, done) => {
-    // logger.info("kha", context);
+  return robot.receiveMiddleware(async (context, next, done) => {
     const { response } = context;
     const { message } = response;
     if (message.message != null) {
-      logger.info(`Ignoring CatchAllMessage`);
-      return next(done);
+      logger.info(`Got CatchAllMessage, fallback`);
+      const Matcher = NaturalMatcher.findLegacyMatcher(message.message.text);
+      if (Matcher == null) {
+        logger.info(`No fallback matches CatchAllMessage, ignoring.`);
+        return next(done);
+      }
+      logger.info(`Legacy matcher found: ${Matcher.name}`);
+      const matcher = new Matcher(response, robot, true);
+      await matcher.execute();
+      return done();
     }
     const { user } = message;
-    if (user.id !== 169915916 && robot.adapterName !== 'shell') {
-      response.reply('Who are you?');
+    if (user.id !== 169915916 && robot.adapterName !== "shell") {
+      response.reply("Who are you?");
       return done();
     }
 
@@ -35,19 +42,19 @@ module.exports = function useNaturals(robot) {
       const [Matcher] = matches;
       logger.info(`${text} matched to: `, Matcher.name);
       const matcher = new Matcher(response, robot);
-      matcher.execute();
+      await matcher.execute();
       return done();
     }
     if (matches.length > 0) {
       // response.send(`Possible matches: ${JSON.stringify(matches.map(m => m.name))}`);
       const messageTitle = `Your message is a bit ambigous.\n Did you mean to...\n`;
-      if (robot.adapterName === 'telegram') {
+      if (robot.adapterName === "telegram") {
         response.envelope.telegram = {
           reply_markup: {
             keyboard: [matches.map(m => m.description)],
             resize_keyboard: true,
-            one_time_keyboard: true,
-          },
+            one_time_keyboard: true
+          }
         };
         response.send(messageTitle);
       } else {
@@ -55,13 +62,16 @@ module.exports = function useNaturals(robot) {
         response.send(messageTitle + messageTemplate);
       }
       robot.emit(
-        'expectResponse',
+        "expectResponse",
         response.message.user.id,
         nestedRes => {
-          nestedRes.envelope.telegram = {
-            reply_markup: { remove_keyboard: true },
+          const { envelope } = nestedRes;
+          envelope.telegram = {
+            reply_markup: { remove_keyboard: true }
           };
-          const cleanText = nestedRes.message.text.replace(robot.name, '').trim();
+          const cleanText = nestedRes.message.text
+            .replace(robot.name, "")
+            .trim();
           const SelectedOption = matches.find(m => m.description === cleanText);
           if (SelectedOption) {
             const matcher = new SelectedOption(nestedRes, robot);
@@ -69,11 +79,13 @@ module.exports = function useNaturals(robot) {
             classifier.addDocument(text, matcher.tag);
             matcher.execute();
           } else {
-            nestedRes.send('so, any of those.... sorry.');
+            nestedRes.send("so, any of those.... sorry.");
           }
-          logger.info(`expected response: ${cleanText}: ${SelectedOption != null}`);
+          logger.info(
+            `expected response: ${cleanText}: ${SelectedOption != null}`
+          );
         },
-        { ttl: 0 },
+        { ttl: 0 }
       );
       return done();
     }

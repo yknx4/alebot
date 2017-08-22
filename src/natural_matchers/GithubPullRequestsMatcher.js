@@ -58,34 +58,63 @@ async function loadAll(fn, opts) {
 const onlyMineRegex = /\s(my|mine)\s/i;
 
 class GithubPullRequestsMatcher extends NaturalMatcher {
-  async execute() {
-    const { res, matches, text } = this;
-    const fullRepo = matches[2].split("/");
-    const my = onlyMineRegex.test(text);
-    const repo = fullRepo[1] || fullRepo[0];
-    const owner = fullRepo[0] !== repo ? fullRepo[0] : user;
-    if (repo == null) return null;
-    const page = 1;
+  get fullRepo() {
+    const { fallback, matches } = this;
+    const repoMatchPosition = fallback ? 4 : 2;
+    return matches[repoMatchPosition].split("/");
+  }
 
-    const userFilter = my ? pr => pr.user.login === user : () => true;
+  get repoName() {
+    return this.fullRepo[1] || this.fullRepo[0];
+  }
+
+  get repoOwner() {
+    const { fullRepo, repoName } = this;
+    return fullRepo[0] !== repoName ? fullRepo[0] : user;
+  }
+
+  get onlyMine() {
+    const { text } = this;
+    return onlyMineRegex.test(text);
+  }
+
+  get hasRepoName() {
+    return this.repoName != null;
+  }
+
+  async execute() {
+    const {
+      res,
+      repoName: repo,
+      repoOwner: owner,
+      hasRepoName,
+      onlyMine,
+      legacy,
+      text
+    } = this;
+    if (!hasRepoName) return null;
+    if (legacy) {
+      classifier.addDocument(text, GITHUB_PR_PLURAL);
+    }
+
+    const userFilter = onlyMine ? pr => pr.user.login === user : () => true;
 
     res.send(
-      `Loading ${my ? "your " : ""}*Pull Requests* for ${owner}/${repo}`
+      `Loading ${onlyMine ? "your " : ""}*Pull Requests* for ${owner}/${repo}`
     );
 
     try {
       const prs = await loadAll(github.pullRequests.getAll, {
         owner,
         per_page: 100,
-        repo,
-        page
+        repo
       });
 
       const view = {
-        noun: my ? "your" : "the",
+        noun: onlyMine ? "your" : "the",
         repo,
         owner,
-        notme: my === false,
+        notme: onlyMine === false,
         prs: prs.filter(userFilter).map(p => {
           p.hasReviewers = p.requested_reviewers.length > 0;
           p.reviewers = p.requested_reviewers
@@ -120,6 +149,7 @@ GithubPullRequestsMatcher.keywords = [
 ];
 
 GithubPullRequestsMatcher.regex = /\s(for|in) (\w*\/\w*|\w*)\s*/i;
+GithubPullRequestsMatcher.fallbackRegex = /(my)? ?(prs?|pull requests?) (for|in) (\w*\/\w*|\w*)/i;
 
 NaturalMatcher.register(GithubPullRequestsMatcher, GITHUB_PR_PLURAL);
 
