@@ -81,7 +81,7 @@ class GithubPullRequestsMatcher extends NaturalMatcher {
       }
 
       const prTemplate = `These are {{noun}} open *Pull Requests* on {{owner}}/{{repo}}
-\t{{#prs}}- {{#notme}}_{{user.login}}_{{/notme}} *#{{number}}* [{{{title}}}]({{{url}}}).{{#hasReviewers}} Reviewers: {{reviewers}}{{/hasReviewers}}\n{{/prs}}`;
+{{#prs}}\t- {{#notme}}_{{user.login}}_{{/notme}} *#{{number}}* [{{{title}}}]({{{url}}}).{{#hasReviewers}} Reviewers: {{reviewers}}{{/hasReviewers}}\n{{/prs}}`;
 
       return res.send(Mustache.render(prTemplate, view));
     } catch (error) {
