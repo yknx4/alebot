@@ -1,8 +1,14 @@
 const invariant = require("invariant");
-const { isRegExp, values } = require("lodash");
-const natural = require("natural");
-
-const tokenizer = new natural.WordTokenizer();
+const { isRegExp, values, isEmpty } = require("lodash");
+const {
+  findFallback,
+  addToIndex,
+  matcherExists,
+  hasEnoughScore,
+  getMatcherClass,
+  matchesRegex,
+  isSimilarToKeywords
+} = require("./NaturalMatcher.helpers");
 
 class NaturalMatcher {
   constructor(res, robot, fallback = false) {
@@ -16,13 +22,11 @@ class NaturalMatcher {
   static register(matcher, tag) {
     logger.info(`Registering ${matcher.name} as ${tag}`);
     NaturalMatcher.matchers[tag] = matcher;
+    // eslint-disable-next-line no-param-reassign
     matcher.tag = tag;
     const { keywords = [] } = matcher;
-    keywords.forEach(keyword => {
-      NaturalMatcher.index[keyword] = (NaturalMatcher.index[keyword] || [])
-        .push(matcher);
-    });
-    if (keywords.length === 0) {
+    keywords.forEach(addToIndex(NaturalMatcher, matcher));
+    if (isEmpty(keywords)) {
       NaturalMatcher.index.$unscoped.push(matcher);
     }
   }
@@ -57,10 +61,14 @@ class NaturalMatcher {
     return isRegExp(this.fallbackRegex);
   }
 
-  get text() {
+  get message() {
     const { fallback, res: { message } } = this;
-    const actualMessage = fallback ? message.message : message;
-    return actualMessage.text.replace(this.robot.name, "").trim();
+    return fallback ? message.message : message;
+  }
+
+  get text() {
+    const { message } = this;
+    return message.text.replace(this.robot.name, "").trim();
   }
 
   get matches() {
@@ -86,54 +94,16 @@ NaturalMatcher.description = "Missing Description";
 
 NaturalMatcher.findLegacyMatcher = function findLegacyMatcher(text) {
   const matchers = values(NaturalMatcher.matchers);
-  return matchers.find(m => m.hasFallback && m.fallbackRegex.test(text));
+  return matchers.find(findFallback(text));
 };
 
 NaturalMatcher.match = function match(text, maxScore, classifications) {
-  const margin = maxScore * 0.25;
-  const keywordSimilarity = this.keywordSimilarityMargin || 0.7;
   return classifications
-    .filter(c => {
-      const matcherExists = NaturalMatcher.matchers[c.label] != null;
-      logger.trace(`${c.label} exists: ${matcherExists}`);
-      return matcherExists;
-    })
-    .filter(c => {
-      const enoughScore = c.zScore >= maxScore - margin;
-      logger.trace(`${c.label} ${c.value} is within range: ${enoughScore}`);
-      return enoughScore;
-    })
-    .map(c => NaturalMatcher.matchers[c.label])
-    .filter(m => {
-      if (m.hasRegex) {
-        const itMatches = m.matches(text) != null;
-        logger.trace(`${m.name} has regex and matches: ${itMatches}`);
-        return itMatches;
-      }
-      logger.trace(`${m.name} does not have a regex`);
-      return true;
-    })
-    .filter(m => {
-      if (m.scoped) {
-        const keywords = m.keywords;
-        const words = tokenizer.tokenize(text);
-        for (let keywordPos = 0; keywordPos < keywords.length; keywordPos++) {
-          const keyword = keywords[keywordPos];
-          for (let wordPos = 0; wordPos < words.length; wordPos++) {
-            const word = words[wordPos];
-            const similarityDegree = natural.JaroWinklerDistance(keyword, word);
-            logger.trace(
-              `${word} is ${similarityDegree * 100}% similar to ${keyword}.`
-            );
-            if (similarityDegree >= keywordSimilarity) {
-              return true;
-            }
-          }
-        }
-        return false;
-      }
-      return true;
-    });
+    .filter(matcherExists(NaturalMatcher))
+    .filter(hasEnoughScore(NaturalMatcher, maxScore))
+    .map(getMatcherClass(NaturalMatcher))
+    .filter(matchesRegex(text))
+    .filter(isSimilarToKeywords(text, this.minimumSimilarity));
 };
 
 module.exports = NaturalMatcher;
