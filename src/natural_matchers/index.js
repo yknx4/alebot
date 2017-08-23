@@ -4,6 +4,7 @@ const SetShowerMatcher = require("./SetShowerMatcher");
 const GithubPullRequestsMatcher = require("./GithubPullRequestsMatcher");
 const TrainMatcher = require("./TrainMatcher");
 const RestartMopidyMatcher = require("./RestartMopidyMatcher");
+const ClassifyMatcher = require("./ClassifyMatcher");
 
 module.exports = {
   NaturalMatcher,
@@ -11,5 +12,6 @@ module.exports = {
   SetShowerMatcher,
   GithubPullRequestsMatcher,
   TrainMatcher,
-  RestartMopidyMatcher
+  RestartMopidyMatcher,
+  ClassifyMatcher
 };

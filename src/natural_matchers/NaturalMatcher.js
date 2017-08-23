@@ -50,7 +50,7 @@ class NaturalMatcher {
       );
       return null;
     }
-    return this.regex.exec(text);
+    return this.fallbackRegex.exec(text);
   }
 
   static get hasRegex() {
