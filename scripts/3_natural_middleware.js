@@ -7,14 +7,19 @@ module.exports = robot =>
   robot.receiveMiddleware(async (context, next, done) => {
     const { response } = context;
     const { message } = response;
-    logger.warn(message);
+    logger.warn(`NaturalMiddleware working ~`);
     if (message.message != null) {
       logger.info(`No fallback matches CatchAllMessage, ignoring.`);
+      return next(done);
+    }
+    if (message.skipNatural === true) {
+      logger.info(`Skipping natural engine.`);
       return next(done);
     }
 
     const { text: baseText } = message;
     const text = baseText.replace(robot.name, '').trim();
+    logger.trace(`Calculating ${text} score.`);
     const classifications = classifier.getClassifications(text);
     const numericValues = classifications.map(c => c.value);
     if (isEmpty(numericValues)) {
@@ -27,9 +32,8 @@ module.exports = robot =>
       // eslint-disable-next-line no-param-reassign
       element.zScore = zScore(element.value, meanResult, deviation);
     }, this);
-    const topScore = max(classifications.map(c => c.zScore));
 
-    const matches = NaturalMatcher.match(text, topScore, classifications);
+    const matches = NaturalMatcher.match(text, classifications);
     if (matches.length === 1) {
       const [Matcher] = matches;
       logger.info(`${text} matched to: `, Matcher.name);
@@ -68,6 +72,8 @@ module.exports = robot =>
             matcher.execute();
           } else {
             nestedRes.send('so, any of those.... sorry.');
+            response.message.skipNatural = true;
+            robot.receive(response.message);
           }
           logger.info(`expected response: ${cleanText}: ${SelectedOption != null}`);
         },

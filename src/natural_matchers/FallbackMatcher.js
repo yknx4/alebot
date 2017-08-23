@@ -1,21 +1,18 @@
-const { isRegExp } = require("lodash");
-const invariant = require("invariant");
-const NaturalMatcher = require("./NaturalMatcher");
+const { isRegExp } = require('lodash');
+const invariant = require('invariant');
+const NaturalMatcher = require('./NaturalMatcher');
 
 class FallbackMatcher extends NaturalMatcher {
   constructor(res, robot) {
     super(res, robot, true);
   }
   static get hasRegex() {
-    invariant(this.regex == null, "A fallback matcher never has regex");
-    return true;
+    invariant(this.regex == null, 'A fallback matcher never has regex');
+    return false;
   }
 
   static get hasFallback() {
-    invariant(
-      isRegExp(this.fallbackRegex),
-      "A fallback matcher always haves a fallback regex"
-    );
+    invariant(isRegExp(this.fallbackRegex), 'A fallback matcher always haves a fallback regex');
     return true;
   }
 
