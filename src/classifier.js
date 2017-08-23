@@ -23,7 +23,7 @@ if (global.classifier == null) {
       if (err) logger.error(err);
       else logger.trace("Backing up classifier data");
     });
-  }, 60000);
+  }, 5000);
 
   classifier.events.on("trainedWithDocument", obj => {
     logger.info("Trained: ", obj);

@@ -17,6 +17,8 @@ class NaturalMatcher {
     this.res = res;
     this.robot = robot;
     this.fallback = fallback;
+    logger.debug(`Training ${this.constructor.tag} with ${this.text}`);
+    classifier.addDocument(this.text, this.constructor.tag);
   }
 
   static register(matcher, tag) {
