@@ -1,7 +1,7 @@
-const { standardDeviation, mean, zScore } = require("simple-statistics");
-const { max, isEmpty } = require("lodash");
+const { standardDeviation, mean, zScore } = require('simple-statistics');
+const { max, isEmpty } = require('lodash');
 
-const { NaturalMatcher } = require("../src/natural_matchers");
+const { NaturalMatcher } = require('../src/natural_matchers');
 
 module.exports = robot =>
   robot.receiveMiddleware(async (context, next, done) => {
@@ -12,14 +12,9 @@ module.exports = robot =>
       logger.info(`No fallback matches CatchAllMessage, ignoring.`);
       return next(done);
     }
-    const { user } = message;
-    if (user.id !== 169915916 && robot.adapterName !== "shell") {
-      response.reply("Who are you?");
-      return done();
-    }
 
     const { text: baseText } = message;
-    const text = baseText.replace(robot.name, "").trim();
+    const text = baseText.replace(robot.name, '').trim();
     const classifications = classifier.getClassifications(text);
     const numericValues = classifications.map(c => c.value);
     if (isEmpty(numericValues)) {
@@ -45,13 +40,13 @@ module.exports = robot =>
     if (matches.length > 0) {
       // response.send(`Possible matches: ${JSON.stringify(matches.map(m => m.name))}`);
       const messageTitle = `Your message is a bit ambigous.\n Did you mean to...\n`;
-      if (robot.adapterName === "telegram") {
+      if (robot.adapterName === 'telegram') {
         response.envelope.telegram = {
           reply_markup: {
             keyboard: [matches.map(m => m.description)],
             resize_keyboard: true,
-            one_time_keyboard: true
-          }
+            one_time_keyboard: true,
+          },
         };
         response.send(messageTitle);
       } else {
@@ -59,28 +54,24 @@ module.exports = robot =>
         response.send(messageTitle + messageTemplate);
       }
       robot.emit(
-        "expectResponse",
+        'expectResponse',
         response.message.user.id,
         nestedRes => {
           const { envelope } = nestedRes;
           envelope.telegram = {
-            reply_markup: { remove_keyboard: true }
+            reply_markup: { remove_keyboard: true },
           };
-          const cleanText = nestedRes.message.text
-            .replace(robot.name, "")
-            .trim();
+          const cleanText = nestedRes.message.text.replace(robot.name, '').trim();
           const SelectedOption = matches.find(m => m.description === cleanText);
           if (SelectedOption) {
             const matcher = new SelectedOption(nestedRes, robot);
             matcher.execute();
           } else {
-            nestedRes.send("so, any of those.... sorry.");
+            nestedRes.send('so, any of those.... sorry.');
           }
-          logger.info(
-            `expected response: ${cleanText}: ${SelectedOption != null}`
-          );
+          logger.info(`expected response: ${cleanText}: ${SelectedOption != null}`);
         },
-        { ttl: 0 }
+        { ttl: 0 },
       );
       return done();
     }
