@@ -47,6 +47,7 @@
     "node": "0.10.x"
   },
   "devDependencies": {
+    "bunyan-debug-stream": "^1.0.8",
     "eslint": "^4.5.0",
     "eslint-config-airbnb-base": "^11.3.1",
     "eslint-config-prettier": "^2.3.0",
