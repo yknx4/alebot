@@ -1,5 +1,5 @@
 const { standardDeviation, mean, zScore } = require("simple-statistics");
-const { max } = require("lodash");
+const { max, isEmpty } = require("lodash");
 
 const { NaturalMatcher } = require("../src/natural_matchers");
 
@@ -7,6 +7,7 @@ module.exports = function useNaturals(robot) {
   return robot.receiveMiddleware(async (context, next, done) => {
     const { response } = context;
     const { message } = response;
+    logger.warn(message);
     if (message.message != null) {
       logger.info(`Got CatchAllMessage, fallback`);
       const Matcher = NaturalMatcher.findLegacyMatcher(message.message.text);
@@ -25,10 +26,14 @@ module.exports = function useNaturals(robot) {
       return done();
     }
 
-    const { text } = message;
-
+    const { text: baseText } = message;
+    const text = baseText.replace(robot.name, "").trim();
     const classifications = classifier.getClassifications(text);
     const numericValues = classifications.map(c => c.value);
+    if (isEmpty(numericValues)) {
+      logger.warn(`No training available, skipping.`);
+      return next(done);
+    }
     const deviation = standardDeviation(numericValues);
     const meanResult = mean(numericValues);
     classifications.forEach(element => {

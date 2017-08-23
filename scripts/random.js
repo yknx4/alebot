@@ -19,7 +19,7 @@ module.exports = robot => {
         "sendVideo",
         { chat_id: res.message.user.room, video },
         error => {
-          logger.error(error);
+          if (error) logger.error(error);
         }
       );
     } else {

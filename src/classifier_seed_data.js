@@ -58,5 +58,15 @@ module.exports = {
     "i do not smell bad anymore",
     "i just took a shower",
     "i am clean again"
+  ],
+  [classificationsData.MOPIDY]: [
+    "restart music server",
+    "music stopped again",
+    "restart mopidy",
+    "mopidy is dead",
+    "my music is dead",
+    "mopidy is not working",
+    "my music is not working",
+    "restart that crappy music server"
   ]
 };
