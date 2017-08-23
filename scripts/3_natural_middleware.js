@@ -3,22 +3,14 @@ const { max, isEmpty } = require("lodash");
 
 const { NaturalMatcher } = require("../src/natural_matchers");
 
-module.exports = function useNaturals(robot) {
-  return robot.receiveMiddleware(async (context, next, done) => {
+module.exports = robot =>
+  robot.receiveMiddleware(async (context, next, done) => {
     const { response } = context;
     const { message } = response;
     logger.warn(message);
     if (message.message != null) {
-      logger.info(`Got CatchAllMessage, fallback`);
-      const Matcher = NaturalMatcher.findLegacyMatcher(message.message.text);
-      if (Matcher == null) {
-        logger.info(`No fallback matches CatchAllMessage, ignoring.`);
-        return next(done);
-      }
-      logger.info(`Legacy matcher found: ${Matcher.name}`);
-      const matcher = new Matcher(response, robot, true);
-      await matcher.execute();
-      return done();
+      logger.info(`No fallback matches CatchAllMessage, ignoring.`);
+      return next(done);
     }
     const { user } = message;
     if (user.id !== 169915916 && robot.adapterName !== "shell") {
@@ -95,4 +87,3 @@ module.exports = function useNaturals(robot) {
 
     return next(done);
   });
-};
