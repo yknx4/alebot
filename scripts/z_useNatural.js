@@ -77,6 +77,7 @@ module.exports = function useNaturals(robot) {
             const matcher = new SelectedOption(nestedRes, robot);
             classifier.addDocument(cleanText, matcher.tag);
             classifier.addDocument(text, matcher.tag);
+            classifier.train();
             matcher.execute();
           } else {
             nestedRes.send("so, any of those.... sorry.");

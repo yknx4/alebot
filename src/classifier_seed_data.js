@@ -1,0 +1,62 @@
+const classificationsData = require("./classifications");
+
+module.exports = {
+  [classificationsData.GITHUB_PR_PLURAL]: [
+    "pull requests",
+    "get pull requests",
+    "show pull requests",
+    "fetch pull requests",
+    "load pull requests",
+    "i want to see pull requests",
+    "lets see the pull requests",
+    "prs",
+    "get prs",
+    "show prs",
+    "fetch prs",
+    "load prs",
+    "i want to see prs",
+    "lets see the prs",
+    "show my prs",
+    "get my prs",
+    "fetch my prs",
+    "my prs",
+    "prs that are mine",
+    "load my prs",
+    "show my prs",
+    "get my prs",
+    "fetch my prs",
+    "my prs",
+    "prs that are mine",
+    "load my prs",
+    "show my pull requests",
+    "get my pull requests",
+    "fetch my pull requests",
+    "my pull requests",
+    "pull requests that are mine",
+    "load my pull requests",
+    "show my pull requests",
+    "get my pull requests",
+    "fetch my pull requests",
+    "my pull requests",
+    "pull requests that are mine",
+    "load my pull requests"
+  ],
+  [classificationsData.SHOWER]: [
+    "when shower",
+    "when did i took a shower?",
+    "do i smell?",
+    "what is that smell?",
+    "tell me when i took a shower",
+    "when i showered",
+    "should i take a shower?",
+    "maybe its time to take a shower"
+  ],
+  [classificationsData.TOOK_SHOWER]: [
+    "i took a shower",
+    "finally a shower",
+    "shower time",
+    "i do not smell bad anymore",
+    "i just took a shower",
+    "i am clean again"
+  ]
+};

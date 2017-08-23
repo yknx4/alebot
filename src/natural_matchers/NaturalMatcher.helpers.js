@@ -1,8 +1,12 @@
 const natural = require("natural");
+const invariant = require("invariant");
 
 const tokenizer = new natural.WordTokenizer();
 
-exports.findFallback = text => m => m.hasFallback && m.fallbackRegex.test(text);
+exports.findFallback = text => m => {
+  logger.info(`Testing ${text} with ${m.fallbackRegex}`);
+  return m.hasFallback && m.fallbackRegex.test(text);
+};
 
 exports.addToIndex = (NaturalMatcher, Children) => keyword => {
   // eslint-disable-next-line no-param-reassign
@@ -29,9 +33,11 @@ exports.getMatcherClass = NaturalMatcher => ({ label }) =>
   NaturalMatcher.matchers[label];
 
 exports.matchesRegex = text => matcher => {
+  invariant(matcher, "Matcher should be defined");
+  logger.info(matcher.name);
   const { hasRegex, matches, name } = matcher;
   if (hasRegex) {
-    const itMatches = matches(text) != null;
+    const itMatches = matches.bind(matcher)(text) != null;
     logger.trace(`${name} has regex and matches: ${itMatches}`);
     return itMatches;
   }

@@ -93,6 +93,7 @@ NaturalMatcher.keywords = [];
 NaturalMatcher.description = "Missing Description";
 
 NaturalMatcher.findLegacyMatcher = function findLegacyMatcher(text) {
+  logger.info(`Finding legacy matcher for ${text}`);
   const matchers = values(NaturalMatcher.matchers);
   return matchers.find(findFallback(text));
 };
